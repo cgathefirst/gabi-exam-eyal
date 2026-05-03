@@ -1,0 +1,8 @@
+replicas: 1
+image:
+  repository: cgabya12/examgabieyal
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+target_port: 8000
+port: 8000
