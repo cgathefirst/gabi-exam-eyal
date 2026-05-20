@@ -27,7 +27,7 @@ podTemplate(cloud: 'kubernetes', containers: [
 
         stage('Hello') {
             container('docker') {
-              sh " dcoker build -dit $appname ."
+              sh " dcoker build -it $appname ."
               sh "echo docker push $appimage:$apptag"
             }
         } //end hello
