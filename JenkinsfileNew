@@ -44,7 +44,7 @@ podTemplate(cloud: 'kubernetes', containers: [
 
         stage('helm template'){
           container('docker'){
-            sh "helm template myapp ./helmcharts"
+            sh "helm template Chart.yaml ./helmcharts"
         }
   	}
   
