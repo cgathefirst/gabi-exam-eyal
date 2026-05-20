@@ -34,11 +34,12 @@ podTemplate(cloud: 'kubernetes', containers: [
             }
         } //end hello
         stage('login') {
-          container('docker')
+          container('docker'){
             withCredentials([usernamePassword(credentialsId: 'jenkins-dockcred',usernameVariable: 'DOCKER_USER',passwordVariable: 'DOCKER_TOKEN')]){
 //            sh "echo $DOCKER_TOKEN | docker login -u $DOCKER_USER --password-stdin"
 //            sh "docker push $appimage"            
             }
+        }
         }
 
         stage('helm template'){
