@@ -43,10 +43,10 @@ podTemplate(cloud: 'kubernetes', containers: [
         }
 
         stage('helm template'){
-          container('docker')
+          container('docker'){
             sh "helm template myapp ./helmcharts"
         }
-  
+  	}
   
     }
 
