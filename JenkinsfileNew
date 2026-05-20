@@ -1,7 +1,7 @@
 def appname = "examgabieyal"
 def repo = "cgabya12"  // Replace with your DockerHub username
-def appimage = "docker.io/${repo}/${appname}"
 def apptag = "${env.BUILD_NUMBER}"
+def appimage = "docker.io/${repo}/${appname}:${apptag}"
 
 podTemplate(cloud: 'kubernetes', containers: [
     containerTemplate(
@@ -25,9 +25,9 @@ podTemplate(cloud: 'kubernetes', containers: [
           }
         } // end chackout
 
-        stage('Hello') {
+        stage('docker Build') {
             container('docker') {
-              sh " docker build -t ${appname}:$({apptag} ."
+              sh " docker build -t ${appimage} ."
               
             }
         } //end hello
