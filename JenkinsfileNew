@@ -25,11 +25,28 @@ podTemplate(cloud: 'kubernetes', containers: [
           }
         } // end chackout
 
+
+
         stage('docker Build') {
             container('docker') {
               sh " docker build -t ${appimage} ."
               
             }
         } //end hello
+        stage('login') {
+          withCredential([usernamePassword(credentialsId: '',usernameVariable: 'DOCKER_USER',passwordVariable: 'DOCKER_TOKEN')]){
+          sh"""
+            echo$DOCKER_TOKEN | docker login -u $DOCKER_USER --pasword-stdin
+            docker push $appimage
+            """
+            }
+        }
+
+        stage('helm template'){
+          sh "helm template ./helmcharts"
+        }
+  
+  
     }
-}
+
+  }
