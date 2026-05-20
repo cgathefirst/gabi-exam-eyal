@@ -27,7 +27,7 @@ podTemplate(cloud: 'kubernetes', containers: [
 
         stage('Hello') {
             container('docker') {
-              sh " docker build -t ${appname} ."
+              sh " docker build -t ${appname}:$({apptag} ."
               
             }
         } //end hello
