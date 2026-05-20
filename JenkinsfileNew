@@ -1,5 +1,5 @@
 def appname = "examgabieyal"
-def repo = "cgabya12"  // Replace with your DockerHub username
+def repo = "cgabya12"  
 def apptag = "${env.BUILD_NUMBER}"
 def appimage = "docker.io/${repo}/${appname}:${apptag}"
 
@@ -8,47 +8,52 @@ podTemplate(cloud: 'kubernetes', containers: [
         name: 'jnlp', 
         image: 'jenkins/inbound-agent:latest'
     ),
-     containerTemplate(
+    containerTemplate(
         name: 'docker', 
-        image: 'docker:26-dind', // Use the latest stable DinD image
-        privileged: true,      // Essential for Docker daemon to run
-        args: '--storage-driver=vfs' // VFS is safest for K8s, though slower
-    )], 
-  volumes: [
-    emptyDirVolume(mountPath: '/var/lib/docker', memory: false) // Q: Why do we need this volume?
-  ]) {
+        image: 'docker:26-dind', 
+        privileged: true,      
+        args: '--storage-driver=vfs' 
+    ),
+    // Added a dedicated Helm container to prevent command failures
+    containerTemplate(
+        name: 'helm',
+        image: 'alpine/helm:3.14.0',
+        ttyEnabled: true,
+        command: 'cat'
+    )
+], 
+volumes: [
+    emptyDirVolume(mountPath: '/var/lib/docker', memory: false) 
+]) {
     node(POD_LABEL) {
-        stage('chackout') {
+        stage('Checkout') {
             container('jnlp') {
-            sh '/usr/bin/git config --global http.sslVerify false'
-	    checkout scm
-          }
-        } // end chackout
+                sh '/usr/bin/git config --global http.sslVerify false'
+                checkout scm
+            }
+        } 
 
-
-
-        stage('docker Build') {
+        stage('Docker Build') {
             container('docker') {
-              sh " docker build -t ${appimage} ."
-              
+                sh "docker build -t ${appimage} ."
             }
-        } //end hello
-        stage('login') {
-          container('docker')
-            withCredentials([usernamePassword(credentialsId: 'jenkins-dockcred',usernameVariable: 'DOCKER_USER',passwordVariable: 'DOCKER_TOKEN')]){
-            sh "echo $DOCKER_TOKEN | docker login -u $DOCKER_USER --password-stdin"
-            sh "docker push $appimage"
-            
-            
+        } 
+
+        stage('Login & Push') {
+            container('docker') {
+                // Fixed spelling to withCredentials and wrapped in curly braces
+                withCredentials([usernamePassword(credentialsId: 'jenkins-dockcred', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_TOKEN')]) {
+                    sh "echo \$DOCKER_TOKEN | docker login -u \$DOCKER_USER --password-stdin"
+                    sh "docker push ${appimage}"
+                }
             }
         }
 
-        stage('helm template'){
-          container('docker')
-            sh "helm template ./helmcharts"
+        stage('Helm Template') {
+            // Switched to the helm container which actually holds the executable
+            container('helm') {
+                sh "helm template ./helmcharts"
+            }
         }
-  
-  
     }
-
-  }
+}
