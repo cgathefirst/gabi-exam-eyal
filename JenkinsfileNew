@@ -33,7 +33,7 @@ podTemplate(cloud: 'kubernetes', containers: [
                 sh "sleep 15 && docker build -t ${appimage} ."
             }
         } 
-        stage('helm install) {
+        stage('helm install') {
             container('docker') { 
                 sh '''
                 curl -LO https://helm.sh
