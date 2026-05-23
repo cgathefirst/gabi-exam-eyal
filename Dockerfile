@@ -1,17 +1,9 @@
 FROM python:3.9-slim
-RUN apt-get update && apt-get install -y \
-    curl \
-    gnupg \
-    apt-transport-https \
-    && rm -rf /var/lib/apt/lists/*
-
-
-RUN curl https://baltocdn.com/helm/signing.asc | gpg --dearmor | tee /usr/share/keyrings/helm.gpg > /dev/null \
-    && echo "deb [signed-by=/usr/share/keyrings/helm.gpg] https://baltocdn.com/helm/stable/debian/ all main" | tee /etc/apt/sources.list.d/helm-stable-debian.list
-
-
-RUN apt-get update && apt-get install -y helm \
-    && rm -rf /var/lib/apt/lists/*
+RUN sudo apt-get install curl gpg apt-transport-https --yes \
+    curl -fsSL https://packages.buildkite.com/helm-linux/helm-debian/gpgkey | gpg --dearmor | sudo tee /usr/share/keyrings/helm.gpg > /dev/null \
+    echo "deb [signed-by=/usr/share/keyrings/helm.gpg] https://packages.buildkite.com/helm-linux/helm-debian/any/ any main" | sudo tee /etc/apt/sources.list.d/helm-stable-debian.list
+RUN sudo apt-get update
+RUN sudo apt-get install helm
 COPY requirements.txt /myapp/requirements.txt
 WORKDIR /myapp
 RUN pip install -r requirements.txt
