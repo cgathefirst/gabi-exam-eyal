@@ -13,8 +13,6 @@ podTemplate(cloud: 'kubernetes', containers: [
         image: 'docker:26-dind', 
         privileged: true,      
         args: '--storage-driver=vfs',
-        // FIX: Tells the docker CLI inside this container to look at localhost for the daemon
-        envVars: [envVar(key: 'DOCKER_HOST', value: 'tcp://localhost:2375')] 
     )], 
   volumes: [
     emptyDirVolume(mountPath: '/var/lib/docker', memory: false) 
