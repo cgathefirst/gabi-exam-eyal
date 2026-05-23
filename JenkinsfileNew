@@ -8,17 +8,11 @@ podTemplate(cloud: 'kubernetes', containers: [
         name: 'jnlp', 
         image: 'jenkins/inbound-agent:latest'
     ),
-        containerTemplate(
-        name: 'helm', 
-        image: 'alpine/helm:latest'
-    ),
     containerTemplate(
         name: 'docker', 
         image: 'docker:26-dind', 
         privileged: true,      
         args: '--storage-driver=vfs',
-        // FIX: Tells the docker CLI inside this container to look at localhost for the daemon
-        envVars: [envVar(key: 'DOCKER_HOST', value: 'tcp://localhost:2375')] 
     )], 
   volumes: [
     emptyDirVolume(mountPath: '/var/lib/docker', memory: false) 
@@ -50,7 +44,7 @@ podTemplate(cloud: 'kubernetes', containers: [
         }
         
         stage('helm template') {
-            container('helm') {
+            container('docker') {
                 // Note: The 'docker' image doesn't have helm installed by default. 
                 // If this fails, you will need a container template that includes the helm binary.
                 sh "helm template Chart.yaml ./helmcharts"
