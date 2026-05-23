@@ -33,7 +33,16 @@ podTemplate(cloud: 'kubernetes', containers: [
                 sh "sleep 15 && docker build -t ${appimage} ."
             }
         } 
-
+        stage('helm install) {
+            container('docker') { 
+                sh '''
+                curl -LO https://helm.sh
+                apt -zxvf helm-v3.12.3-linux-amd64.tar.gz
+                mv linux-amd64/helm /usr/local/bin/helm
+                ```
+                }
+            }
+        }
         stage('login & push') {
             container('docker') {
                 // FIX: Kept the braces open and intact
