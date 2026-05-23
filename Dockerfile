@@ -1,9 +1,11 @@
 FROM python:3.9-slim
-RUN  apt-get install curl gpg apt-transport-https --yes 
-RUN curl -fsSL https://packages.buildkite.com/helm-linux/helm-debian/gpgkey | gpg --dearmor | sudo tee /usr/share/keyrings/helm.gpg > /dev/null 
-RUN echo "deb [signed-by=/usr/share/keyrings/helm.gpg] https://packages.buildkite.com/helm-linux/helm-debian/any/ any main" | sudo tee /etc/apt/sources.list.d/helm-stable-debian.list
-RUN  apt-get update
-RUN  apt-get install helm
+
+RUN apt-get update && apt-get install -y curl \
+    && curl -fsSL -o get_helm.sh https://githubusercontent.com \
+    && chmod 700 get_helm.sh \
+    && ./get_helm.sh \
+    && rm get_helm.sh \
+    && rm -rf /var/lib/apt/lists/*
 COPY requirements.txt /myapp/requirements.txt
 WORKDIR /myapp
 RUN pip install -r requirements.txt
