@@ -8,46 +8,49 @@ podTemplate(cloud: 'kubernetes', containers: [
         name: 'jnlp', 
         image: 'jenkins/inbound-agent:latest'
     ),
-     containerTemplate(
+    containerTemplate(
         name: 'docker', 
-        image: 'docker:26-dind', // Use the latest stable DinD image
-        privileged: true,      // Essential for Docker daemon to run
-        args: '--storage-driver=vfs' // VFS is safest for K8s, though slower
+        image: 'docker:26-dind', 
+        privileged: true,      
+        args: '--storage-driver=vfs',
+        // FIX: Tells the docker CLI inside this container to look at localhost for the daemon
+        envVars: [envVar(key: 'DOCKER_HOST', value: 'tcp://localhost:2375')] 
     )], 
   volumes: [
-    emptyDirVolume(mountPath: '/var/lib/docker', memory: false) // Q: Why do we need this volume?
+    emptyDirVolume(mountPath: '/var/lib/docker', memory: false) 
   ]) {
+    
     node(POD_LABEL) {
-        stage('chackout') {
+        stage('checkout') { // fixed typo "chackout"
             container('jnlp') {
-            sh '/usr/bin/git config --global http.sslVerify false'
-	    checkout scm
-          }
-        } // end chackout
-
-
+                sh '/usr/bin/git config --global http.sslVerify false'
+                checkout scm
+            }
+        } 
 
         stage('docker Build') {
             container('docker') {
-              sh " docker build -t ${appimage} ."
-              
+                // We add a quick sleep to ensure the background DinD daemon has fully started up
+                sh "sleep 5 && docker build -t ${appimage} ."
             }
-        } //end hello
-        stage('login') {
-          container('docker'){
-            withCredentials([usernamePassword(credentialsId: 'jenkins-dockcred',usernameVariable: 'DOCKER_USER',passwordVariable: 'DOCKER_TOKEN')]){
-//            sh "echo $DOCKER_TOKEN | docker login -u $DOCKER_USER --password-stdin"
-//            sh "docker push $appimage"            
-//            }
-        }
-        }
-        }
-        stage('helm template'){
-          container('docker'){
-            sh "helm template Chart.yaml ./helmcharts"
-        }
-  	}
-  
-    }
+        } 
 
-  }
+        stage('login & push') {
+            container('docker') {
+                // FIX: Kept the braces open and intact
+                withCredentials([usernamePassword(credentialsId: 'jenkins-dockcred', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_TOKEN')]) {
+                    sh "echo \$DOCKER_TOKEN | docker login -u \$DOCKER_USER --password-stdin"
+                    sh "docker push ${appimage}"            
+                }
+            }
+        }
+        
+        stage('helm template') {
+            container('docker') {
+                // Note: The 'docker' image doesn't have helm installed by default. 
+                // If this fails, you will need a container template that includes the helm binary.
+                sh "helm template Chart.yaml ./helmcharts"
+            }
+        }
+    }
+}
