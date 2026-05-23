@@ -47,7 +47,7 @@ podTemplate(cloud: 'kubernetes', containers: [
             container('docker') {
                 // Note: The 'docker' image doesn't have helm installed by default. 
                 // If this fails, you will need a container template that includes the helm binary.
-                sh "helm template Chart.yaml ./helmcharts"
+                sh "helm template ${appimage} ./helmcharts/Charts.yaml"
             }
         }
     }
