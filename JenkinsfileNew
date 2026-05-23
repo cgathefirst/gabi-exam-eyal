@@ -38,10 +38,10 @@ podTemplate(cloud: 'kubernetes', containers: [
             withCredentials([usernamePassword(credentialsId: 'jenkins-dockcred',usernameVariable: 'DOCKER_USER',passwordVariable: 'DOCKER_TOKEN')]){
 //            sh "echo $DOCKER_TOKEN | docker login -u $DOCKER_USER --password-stdin"
 //            sh "docker push $appimage"            
-            }
+//            }
         }
         }
-
+        }
         stage('helm template'){
           container('docker'){
             sh "helm template Chart.yaml ./helmcharts"
