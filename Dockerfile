@@ -1,10 +1,18 @@
-FROM python:3.9-slim
+FROM debian:bookworm-slim
 
-RUN apt-get update && apt-get install -y curl \
-    && curl -fsSL -o get_helm.sh https://githubusercontent.com \
-    && chmod 700 get_helm.sh \
-    && ./get_helm.sh \
-    && rm get_helm.sh \
+# Install dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    gnupg \
+    apt-transport-https \
+    && rm -rf /var/lib/apt/lists/*
+
+# Add the Helm GPG key and repository
+RUN curl https://baltocdn.com/helm/signing.asc | gpg --dearmor | tee /usr/share/keyrings/helm.gpg > /dev/null \
+    && echo "deb [signed-by=/usr/share/keyrings/helm.gpg] https://baltocdn.com/helm/stable/debian/ all main" | tee /etc/apt/sources.list.d/helm-stable-debian.list
+
+# Install Helm
+RUN apt-get update && apt-get install -y helm \
     && rm -rf /var/lib/apt/lists/*
 COPY requirements.txt /myapp/requirements.txt
 WORKDIR /myapp
