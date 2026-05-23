@@ -39,7 +39,7 @@ podTemplate(cloud: 'kubernetes', containers: [
                 curl -LO https://helm.sh
                 apt -zxvf helm-v3.12.3-linux-amd64.tar.gz
                 mv linux-amd64/helm /usr/local/bin/helm
-                ```
+                '''
                 }
             }
         }
