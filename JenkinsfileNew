@@ -13,9 +13,6 @@ podTemplate(cloud: 'kubernetes', containers: [
         image: 'docker:26-dind', 
         privileged: true,      
         args: '--storage-driver=vfs',
-        sh: ' curl -fsSL -o get_helm.sh https://githubusercontent.com
-            chmod 700 get_helm.sh
-            ./get_helm.sh ',
     )], 
   volumes: [
     emptyDirVolume(mountPath: '/var/lib/docker', memory: false) 
@@ -35,7 +32,17 @@ podTemplate(cloud: 'kubernetes', containers: [
                 sh "sleep 15 && docker build -t ${appimage} ."
             }
         } 
-
+        stage('Install Helm') {
+            steps {
+                container('docker') {
+                    sh '''
+                        curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+                        chmod 700 get_helm.sh
+                        ./get_helm.sh
+                    '''
+                }
+            }
+        }
         stage('login & push') {
             container('docker') {
                 // FIX: Kept the braces open and intact
