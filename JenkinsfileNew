@@ -13,7 +13,7 @@ podTemplate(cloud: 'kubernetes', containers: [
         image: 'docker:26-dind', 
         privileged: true,      
         args: '--storage-driver=vfs',
-        sh ' curl -fsSL -o get_helm.sh https://githubusercontent.com
+        sh: ' curl -fsSL -o get_helm.sh https://githubusercontent.com
             chmod 700 get_helm.sh
             ./get_helm.sh ',
     )], 
