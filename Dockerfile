@@ -1,7 +1,4 @@
 FROM python:3.9-slim
-COPY . /myapp
-WORKDIR /myapp
-RUN pip install -r requirements.txt
 RUN apt-get update && apt-get install -y \
     curl \
     gnupg \
@@ -15,5 +12,10 @@ RUN curl https://baltocdn.com/helm/signing.asc | gpg --dearmor | tee /usr/share/
 
 RUN apt-get update && apt-get install -y helm \
     && rm -rf /var/lib/apt/lists/*
+COPY requirements.txt /myapp/requirements.txt
+WORKDIR /myapp
+RUN pip install -r requirements.txt
+COPY . .
+
 EXPOSE 8000
 CMD ["python3", "app.py"]
