@@ -19,7 +19,7 @@ podTemplate(cloud: 'kubernetes', containers: [
     emptyDirVolume(mountPath: '/var/lib/docker', memory: false) 
   ]) {
     node {
-    container('dind') {
+    container('docker') {
         sh 'apk add --no-cache curl'
         sh 'curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-4'
         sh 'chmod 700 get_helm.sh'
