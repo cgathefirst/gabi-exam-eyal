@@ -36,6 +36,7 @@ podTemplate(cloud: 'kubernetes', containers: [
         stage('helm install') {
             container('docker') { 
                 sh '''
+                apt-get update && apt-get install -y curl
                 curl -LO https://helm.sh
                 apt -zxvf helm-v3.12.3-linux-amd64.tar.gz
                 mv linux-amd64/helm /usr/local/bin/helm
@@ -45,7 +46,6 @@ podTemplate(cloud: 'kubernetes', containers: [
         }
         stage('login & push') {
             container('docker') {
-                // FIX: Kept the braces open and intact
                 withCredentials([usernamePassword(credentialsId: 'jenkins-dockcred', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_TOKEN')]) {
                     sh "echo \$DOCKER_TOKEN | docker login -u \$DOCKER_USER --password-stdin"
                     sh "docker push ${appimage}"            
