@@ -35,7 +35,7 @@ podTemplate(cloud: 'kubernetes', containers: [
         } 
         stage('helm install') {
             container('docker') { 
-                sh ''
+                sh '''
                 apt-get update && apt-get install -y curl
                 curl -LO https://helm.sh
                 apt -zxvf helm-v3.12.3-linux-amd64.tar.gz
