@@ -20,7 +20,7 @@ podTemplate(cloud: 'kubernetes', containers: [
   ]) {
     
     node(POD_LABEL) {
-        stage('checkout') { // fixed typo "chackout"
+        stage('checkout') { 
             container('jnlp') {
                 sh '/usr/bin/git config --global http.sslVerify false'
                 checkout scm
@@ -29,8 +29,7 @@ podTemplate(cloud: 'kubernetes', containers: [
 
         stage('docker Build') {
             container('docker') {
-                // We add a quick sleep to ensure the background DinD daemon has fully started up
-                sh "sleep 15 && docker build -t ${appimage} ."
+                sh "sleep 10 && docker build -t ${appimage} ."
             }
         } 
         stage('helm install') {
@@ -46,7 +45,7 @@ podTemplate(cloud: 'kubernetes', containers: [
                 '''
                 }
             }
-        }
+        
         stage('login & push') {
             container('docker') {
                 withCredentials([usernamePassword(credentialsId: 'jenkins-dockcred', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_TOKEN')]) {
@@ -62,4 +61,4 @@ podTemplate(cloud: 'kubernetes', containers: [
             }
         }
     }
-
+}
