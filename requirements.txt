@@ -2,4 +2,4 @@ prometheus_client
 flask
 boto3
 helm
-curl
+pycurl
