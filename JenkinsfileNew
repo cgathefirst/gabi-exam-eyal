@@ -18,14 +18,7 @@ podTemplate(cloud: 'kubernetes', containers: [
   volumes: [
     emptyDirVolume(mountPath: '/var/lib/docker', memory: false) 
   ]) {
-    node {
-    container('docker') {
-        sh 'apk add --no-cache curl'
-        sh 'curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-4'
-        sh 'chmod 700 get_helm.sh'
-        sh 'sh ./get_helm.sh'
-    }
-}
+    
     node(POD_LABEL) {
         stage('checkout') { // fixed typo "chackout"
             container('jnlp') {
@@ -40,6 +33,17 @@ podTemplate(cloud: 'kubernetes', containers: [
                 sh "sleep 15 && docker build -t ${appimage} ."
             }
         } 
+        stage('helm install') {
+            container('docker') { 
+                sh '''
+                apk add --no-cache curl
+                apk add --no-cache bash
+                curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-4
+                chmod 700 get_helm.sh
+                ./get_helm.sh
+                '''
+                }
+            }
         }
         stage('login & push') {
             container('docker') {
