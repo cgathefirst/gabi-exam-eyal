@@ -32,21 +32,23 @@ volumes: [
                 checkout scm
             }
         } 
-        stage('Security and Linting'){
-                parallel{
-                    stage('Linting'){
-                        container('docker'){
-                            echo " now using Flake8 "
-                    }
-                }
-                    stage('Security'){
-                        container('docker'){
-                            echo "Now using Trivy for Docker"
-                        }
-                    }
-                }
-            }
-        }        
+        
+        stage('Security and Linting') {
+            parallel {
+                stage('Linting') {
+                    container('docker') {
+                        echo " now using Flake8 "
+                    } // Closed container
+                } // Closed Linting stage
+                
+                stage('Security') {
+                    container('docker') {
+                        echo "Now using Trivy for Docker"
+                    } 
+                } 
+            } 
+        } 
+        
         stage('Docker Build & Push') {
             container('docker') {
                 sh "docker build -t ${appimage} ."
@@ -57,7 +59,6 @@ volumes: [
                 }
             }
         }
-        
 
         stage('Helm Template Validation') {
             container('helm') {
@@ -65,3 +66,4 @@ volumes: [
             }
         }
     }
+}
