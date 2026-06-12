@@ -34,20 +34,19 @@ volumes: [
         } 
         
         stage('Security and Linting') {
-            parallel {
-                stage('Linting') {
+            parallel(
+                'Linting': {
                     container('docker') {
                         echo " now using Flake8 "
-                    } // Closed container
-                } // Closed Linting stage
-                
-                stage('Security') {
+                    }
+                },
+                'Security': {
                     container('docker') {
                         echo "Now using Trivy for Docker"
-                    } 
-                } 
-            } 
-        } 
+                    }
+                }
+            )
+        }
         
         stage('Docker Build & Push') {
             container('docker') {
