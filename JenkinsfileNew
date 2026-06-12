@@ -45,18 +45,20 @@ volumes: [
         }
         
         stage('Security and Linting'){
-            container('docker'){
                 parallel{
-                    stage('Security'){
-                        echo " now using Flake8 "
-                    }
                     stage('Linting'){
-                        echo "Now using Trivy for Docker"
+                        container('docker'){
+                            echo " now using Flake8 "
+                    }
+                }
+                    stage('Security'){
+                        container('docker'){
+                            echo "Now using Trivy for Docker"
                         }
                     }
                 }
             }
-
+        }
         stage('Helm Template Validation') {
             container('helm') {
                 sh "helm template ${appname}-${apptag} ./helmcharts"
