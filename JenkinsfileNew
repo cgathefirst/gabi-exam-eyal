@@ -26,12 +26,27 @@ podTemplate(cloud: 'kubernetes', containers: [
                 checkout scm
             }
         } 
-
+        
         stage('docker Build') {
             container('docker') {
                 sh "sleep 10 && docker build -t ${appimage} ."
             }
         } 
+        stage('linting & security'){
+            parallel{
+            container('docker')
+
+                stage('flake8'){
+                    echo('using flake8')
+                }
+                stage('trivy for docker'){
+                    echo('using trivy')
+                }
+                stage('bandit for python'){
+                    echo('using bandit ')
+                }
+            }
+        }
         stage('helm install') {
             container('docker') { 
                 sh '''                
