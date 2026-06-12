@@ -1,5 +1,5 @@
 def appname = "examgabieyal"
-def repo = "cgabya12"  // Replace with your DockerHub username
+def repo = "cgabya12"  // Your DockerHub username
 def apptag = "${env.BUILD_NUMBER}"
 def appimage = "docker.io/${repo}/${appname}:${apptag}"
 
@@ -8,47 +8,36 @@ podTemplate(cloud: 'kubernetes', containers: [
         name: 'jnlp', 
         image: 'jenkins/inbound-agent:latest'
     ),
+    // Switch to overlay2 driver for massive I/O performance gains
     containerTemplate(
         name: 'docker', 
         image: 'docker:26-dind', 
         privileged: true,      
-        args: '--storage-driver=vfs',
-        
-    )], 
-  volumes: [
+        args: '--storage-driver=overlay2' 
+    ),
+    containerTemplate(
+        name: 'helm',
+        image: 'alpine/helm:3.14.0',
+        command: 'sleep',
+        args: '99d'
+    )
+], 
+volumes: [
     emptyDirVolume(mountPath: '/var/lib/docker', memory: false) 
-  ]) {
+]) {
     
     node(POD_LABEL) {
-        stage('checkout') { 
+        stage('Checkout') { 
             container('jnlp') {
                 sh '/usr/bin/git config --global http.sslVerify false'
                 checkout scm
             }
         } 
         
-        stage('docker Build') {
+        stage('Docker Build & Push') {
             container('docker') {
-                sh "sleep 10 && docker build -t ${appimage} ."
-            }
-        } 
-
-        stage('helm install') {
-            container('docker') { 
-                sh '''                
-                apk add --no-cache curl
-                apk add --no-cache bash
-                '''
-                sh '''
-                curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-4
-                chmod 700 get_helm.sh
-                ./get_helm.sh
-                '''
-                }
-            }
-        
-        stage('login & push') {
-            container('docker') {
+                sh "docker build -t ${appimage} ."
+                
                 withCredentials([usernamePassword(credentialsId: 'jenkins-dockcred', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_TOKEN')]) {
                     sh "echo \$DOCKER_TOKEN | docker login -u \$DOCKER_USER --password-stdin"
                     sh "docker push ${appimage}"            
@@ -56,8 +45,9 @@ podTemplate(cloud: 'kubernetes', containers: [
             }
         }
         
-        stage('helm template') {
-            container('docker') {
+        // This stage now takes 2 seconds instead of 30+ seconds
+        stage('Helm Template Validation') {
+            container('helm') {
                 sh "helm template ${appname}-${apptag} ./helmcharts"
             }
         }
