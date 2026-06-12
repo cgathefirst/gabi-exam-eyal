@@ -33,8 +33,9 @@ podTemplate(cloud: 'kubernetes', containers: [
             }
         } 
         stage('linting & security'){
-            parallel{
             container('docker')
+            parallel{
+            
 
                 stage('flake8'){
                     echo('using flake8')
