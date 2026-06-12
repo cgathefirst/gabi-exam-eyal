@@ -32,31 +32,7 @@ podTemplate(cloud: 'kubernetes', containers: [
                 sh "sleep 10 && docker build -t ${appimage} ."
             }
         } 
-        stage('linting & security') {
-            parallel {
-                stage('flake8') {
-                    steps {
-                        container('docker') {
-                            echo 'using flake8'
-                        }
-                    }
-                }
-                stage('trivy for docker') {
-                    steps {
-                        container('docker') {
-                            echo 'using trivy'
-                        }
-                    }
-                }
-                stage('bandit for python') {
-                    steps {
-                        container('docker') {
-                            echo 'using bandit'
-                        }
-                    }
-                }
-            }
-}
+
         stage('helm install') {
             container('docker') { 
                 sh '''                
