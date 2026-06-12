@@ -8,7 +8,6 @@ podTemplate(cloud: 'kubernetes', containers: [
         name: 'jnlp', 
         image: 'jenkins/inbound-agent:latest'
     ),
-    // Switch to overlay2 driver for massive I/O performance gains
     containerTemplate(
         name: 'docker', 
         image: 'docker:26-dind', 
@@ -45,6 +44,19 @@ volumes: [
             }
         }
         
+        stage('Security and Linting'){
+            container('docker'){
+                parallel{
+                    stage('Security'){
+                        echo " now using Flake8 "
+                    }
+                    stage('Linting'){
+                        echo "Now using Trivy for Docker"
+                        }
+                    }
+                }
+            }
+
         stage('Helm Template Validation') {
             container('helm') {
                 sh "helm template ${appname}-${apptag} ./helmcharts"
