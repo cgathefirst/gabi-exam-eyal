@@ -5,13 +5,21 @@ properties([
             choices: ['dev', 'qa', 'prod'], 
             description: 'Select the target environment folder'
         )
+        string(
+            name: 'GIT_BRANCH',
+            defaultValue: 'second',
+            description: 'The target branch to push back to'
+        )
     ])
 ])
+
 
 def appname = "examgabieyal"
 def repo = "cgabya12"  
 def apptag = "${env.BUILD_NUMBER}"
 def appimage = "docker.io/${repo}/${appname}:${apptag}"
+
+
 
 podTemplate(cloud: 'kubernetes', containers: [
     containerTemplate(
@@ -72,6 +80,23 @@ volumes: [
             container('helm') {
                 sh "helm template ${appname}-${apptag} ./helmcharts > pipeapp.yaml && cat pipeapp.yaml"
                 sh "ls -la"
+            }
+        }
+        stage('Push Manifest to Git') {
+            container('jnlp') {
+                sh "mkdir -p ${params.TARGET_SUBFOLDER}"
+                sh "mv pipeapp.yaml ${params.TARGET_SUBFOLDER}/pipeapp.yaml"
+                withCredentials([usernamePassword(credentialsId: 'github-token-push', usernameVariable: 'GIT_USER', passwordVariable: 'GIT_TOKEN')]) {
+                    def rawRepoUrl = sh(script: 'git config --get remote.origin.url', returnStdout: true).trim()
+                    def repoUrl = rawRepoUrl.replace("https://", "").replace("http://", "")
+                    sh """
+                        git config user.name "Jenkins CI Agent"
+                        git config user.email "jenkins-ci@gabi.com"
+                        git add ${params.TARGET_SUBFOLDER}/pipeapp.yaml
+                        git commit -m "Deploying ${appname}:${apptag} to ${params.TARGET_SUBFOLDER} [Build #${env.BUILD_NUMBER}]" || echo "No changes detected to commit"
+                        git push https://${GIT_USER}:${GIT_TOKEN}@${repoUrl} HEAD:${params.GIT_BRANCH}
+                    """
+                }
             }
         }
     }
