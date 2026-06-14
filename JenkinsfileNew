@@ -1,7 +1,22 @@
+properties([
+    parameters([
+        choice(
+            name: 'TARGET_SUBFOLDER', 
+            choices: ['dev', 'qa', 'prod'], 
+            description: 'Select the target environment folder'
+        )
+    ])
+])
+
 def appname = "examgabieyal"
-def repo = "cgabya12"  // Your DockerHub username
+def repo = "cgabya12"  
 def apptag = "${env.BUILD_NUMBER}"
 def appimage = "docker.io/${repo}/${appname}:${apptag}"
+def targetGitRepo    = "https://github.com/cgathefirst/gitops-argo.git" 
+def targetBranch     = "second"
+def targetFolder     = "app1" 
+def gitCredentialsId = "github-token-push"
+
 
 podTemplate(cloud: 'kubernetes', containers: [
     containerTemplate(
@@ -34,7 +49,6 @@ volumes: [
         } 
         
         stage('Security and Linting') {
-            // Scripted pipeline parallel syntax uses named closures in a map:
             parallel(
                 'Linting': {
                     container('docker') {
@@ -52,7 +66,6 @@ volumes: [
         stage('Docker Build & Push') {
             container('docker') {
                 sh "docker build -t ${appimage} ."
-                
                 withCredentials([usernamePassword(credentialsId: 'jenkins-dockcred', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_TOKEN')]) {
                     sh "echo \$DOCKER_TOKEN | docker login -u \$DOCKER_USER --password-stdin"
                     sh "docker push ${appimage}"            
@@ -64,6 +77,33 @@ volumes: [
             container('helm') {
                 sh "helm template ${appname}-${apptag} ./helmcharts > pipeapp.yaml && cat pipeapp.yaml"
                 sh "ls -la"
+            }
+        }
+
+stage('Git Push Manifest') {
+            container('jnlp') {
+                // Combine the base folder (app1) with the user choice (dev/qa/prod)
+                def destinationPath = "${targetFolder}/${params.TARGET_SUBFOLDER}"
+                echo "Target destination directory inside repository will be: ${destinationPath}"
+                withCredentials([usernamePassword(credentialsId: gitCredentialsId, usernameVariable: 'GIT_USER', passwordVariable: 'GIT_TOKEN')]) {
+                    sh """
+                        git config --global user.email "jenkinsbot@gabi.com"
+                        git config --global user.name "Jenkins CI"
+                        git config --global http.sslVerify false
+                        rm -rf target-git-repo
+                        git clone --branch ${targetBranch} https://\$GIT_USER:\$GIT_TOKEN@${targetGitRepo} target-git-repo
+                        mkdir -p target-git-repo/${destinationPath}
+                        cp pipeapp.yaml target-git-repo/${destinationPath}/pipeapp.yaml
+                        cd target-git-repo
+                        git add ${destinationPath}/pipeapp.yaml
+                        if ! git diff-index --quiet HEAD --; then
+                            git commit -m "Automated deployment update to ${destinationPath}: ${appname} tag ${apptag}"
+                            git push origin ${targetBranch}
+                        else
+                            echo "No changes detected in the manifest. Skipping push."
+                        fi
+                    """
+                }
             }
         }
     }
