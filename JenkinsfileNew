@@ -1,42 +1,39 @@
 properties([
     parameters([
-        // 1. Existing Target Branch Parameter
+        // 1. Fixed Choice Parameter using explicit map notation
         [
             $class: 'ChoiceParameterDefinition',
             name: 'TARGET_BRANCH', 
-            choices: "main\ndev/auto-build", 
+            choices: "main\ndevelop\nstaging\nfeature/auto-build", 
             description: 'Select the remote Git branch you want to push the helmtemplate.yaml to.'
         ],
         
-        // 2. New Active Choices Parameter to dynamically list folders
-        $class: 'ChoiceParameter',
-        choiceType: 'PT_SINGLE_SELECT', // Renders as a single-select dropdown
-        description: 'Select the target folder within the repository to place the template.',
-        name: 'TARGET_FOLDER',
-        script: [
-            $class: 'GroovyScript',
-            fallbackScript: [
-                classpath: [],
-                sandbox: false,
-                script: "return ['error-loading-folders']"
-            ],
+        // 2. Active Choices Parameter configuration
+        [
+            $class: 'ChoiceParameter',
+            choiceType: 'PT_SINGLE_SELECT',
+            description: 'Select the target folder within the repository to place the template.',
+            name: 'TARGET_FOLDER',
             script: [
-                classpath: [],
-                sandbox: false,
-                script: """
-                    // Uses git commands directly against your remote repo URL to list directories without checking out everything
-                    def repoUrl = "https://github.com/cgathefirst/gitops-argo.git" 
-                    
-                    // Executes a native OS process to fetch the tree structure of the repository
-                    def command = "git ls-tree -d --name-only HEAD"
-                    def proc = ['sh', '-c', "git ls-remote --exit-code \${repoUrl} &>/dev/null && git ls-tree -r --name-only HEAD | grep '/' | awk -F/ '{print \$1}' | sort -u || echo 'root_only'"].execute()
-                    proc.waitFor()
-                    
-                    def folders = proc.in.text.readLines()
-                    // Prepend root dot notation if they want to save directly to the root workspace
-                    folders.add(0, ".") 
-                    return folders
-                """
+                $class: 'GroovyScript',
+                fallbackScript: [
+                    classpath: [],
+                    sandbox: true,
+                    script: "return ['error-loading-folders']"
+                ],
+                script: [
+                    classpath: [],
+                    sandbox: true,
+                    script: """
+                        def repoUrl = "https://github.com" 
+                        def proc = ['sh', '-c', "git ls-remote --exit-code \${repoUrl} &>/dev/null && git ls-tree -r --name-only HEAD | grep '/' | awk -F/ '{print \$1}' | sort -u || echo 'root_only'"].execute()
+                        proc.waitFor()
+                        
+                        def folders = proc.in.text.readLines()
+                        folders.add(0, ".") 
+                        return folders
+                    """
+                ]
             ]
         ]
     ])
