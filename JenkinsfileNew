@@ -1,11 +1,12 @@
 properties([
     parameters([
         // 1. Existing Target Branch Parameter
-        choice(
+        [
+            $class: 'ChoiceParameterDefinition',
             name: 'TARGET_BRANCH', 
-            choices: ['main', 'dev'], 
-            description: 'Select the remote Git branch you want to push the values.yaml to.'
-        ),
+            choices: "main\ndev/auto-build", 
+            description: 'Select the remote Git branch you want to push the helmtemplate.yaml to.'
+        ],
         
         // 2. New Active Choices Parameter to dynamically list folders
         $class: 'ChoiceParameter',
