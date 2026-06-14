@@ -91,7 +91,7 @@ stage('Git Push Manifest') {
                         git config --global user.name "Jenkins CI"
                         git config --global http.sslVerify false
                         rm -rf target-git-repo
-                        git clone --branch ${targetBranch} https://\$GIT_USER:\$GIT_TOKEN@${targetGitRepo} target-git-repo
+                        git clone --branch ${targetBranch} ${targetGitRepo} target-git-repo
                         mkdir -p target-git-repo/${destinationPath}
                         cp pipeapp.yaml target-git-repo/${destinationPath}/pipeapp.yaml
                         cd target-git-repo
