@@ -18,12 +18,12 @@ properties([
                 $class: 'GroovyScript',
                 fallbackScript: [
                     classpath: [],
-                    sandbox: false,
+                    sandbox: true,
                     script: "return ['error-loading-folders']"
                 ],
                 script: [
                     classpath: [],
-                    sandbox: false,
+                    sandbox: true,
                     script: """
                         def repoUrl = "https://github.com/cgathefirst/gitops-argo.git" 
                         def proc = ['sh', '-c', "git ls-remote --exit-code \${repoUrl} &>/dev/null && git ls-tree -r --name-only HEAD:${params.TARGET_BRANCH} | grep '/' | awk -F/ '{print \$1}' | sort -u || echo 'root_only'"].execute()
