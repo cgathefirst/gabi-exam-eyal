@@ -16,7 +16,7 @@ properties([
 
 def appname = "examgabieyal"
 def repo = "cgabya12"  
-def apptag = "${env.TARGET_SUBFOLDER}"
+def apptag = "${params.TARGET_SUBFOLDER}"
 def appimage = "docker.io/${repo}/${appname}:${apptag}"
 
 
@@ -78,7 +78,7 @@ volumes: [
 
         stage('Helm Template Validation') {
             container('helm') {
-                sh "helm template ${appname}-${apptag} ./helmcharts > pipeapp.yaml && cat pipeapp.yaml"
+                sh "helm template ${appname}-${apptag} ./helmcharts --set image.tag=${apptag} > pipeapp.yaml && cat pipeapp.yaml"
                 sh "ls -la"
             }
         }
