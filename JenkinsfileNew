@@ -94,7 +94,7 @@ volumes: [
                         git config user.email "jenkins-ci@gabi.com"
                         git add k8s-${params.TARGET_SUBFOLDER}/pipeapp.yaml
                         git commit -m "Deploying ${appname}:${apptag} to k8s-${params.TARGET_SUBFOLDER} [Build #${env.BUILD_NUMBER}]" || echo "No changes detected to commit"
-                        git push https://${GIT_USER}:${GIT_TOKEN}@gitops-argo.git HEAD:${params.GIT_BRANCH}
+                        git push https://github.com/cgathefirst/gitops-argo.git HEAD:${params.GIT_BRANCH}
                     """
                 }
             }
