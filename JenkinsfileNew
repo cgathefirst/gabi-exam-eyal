@@ -16,7 +16,7 @@ properties([
 
 def appname = "examgabieyal"
 def repo = "cgabya12"  
-def apptag = "${env.BUILD_NUMBER}"
+def apptag = "${env.TARGET_SUBFOLDER}"
 def appimage = "docker.io/${repo}/${appname}:${apptag}"
 
 
