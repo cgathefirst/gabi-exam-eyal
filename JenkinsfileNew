@@ -94,8 +94,8 @@ stage('Push Manifest to Git') {
                         git clone https://${GIT_USER}:${GIT_TOKEN}@${targetRepoHost}/${targetRepoPath} ${targetDir}
                         cd ${targetDir}
                         git checkout ${params.GIT_BRANCH} || git checkout -b ${params.GIT_BRANCH}
-                        mkdir -p k8s-${params.TARGET_SUBFOLDER}
-                        cp ../pipeapp.yaml k8s-${params.TARGET_SUBFOLDER}/pipeapp.yaml
+                        mkdir -p app1/k8s-${params.TARGET_SUBFOLDER}
+                        cp ../pipeapp.yaml app1/k8s-${params.TARGET_SUBFOLDER}/pipeapp.yaml
                         git config user.name "Jenkins CI Agent"
                         git config user.email "jenkins-ci@gabi.com"
                         git add k8s-${params.TARGET_SUBFOLDER}/pipeapp.yaml
@@ -103,7 +103,7 @@ stage('Push Manifest to Git') {
                         if git diff-index --quiet HEAD --; then
                             echo "No changes detected to commit"
                         else
-                            git commit -m "Deploying ${appname}:${apptag} to k8s-${params.TARGET_SUBFOLDER} [Build #${env.BUILD_NUMBER}]"
+                            git commit -m "Deploying ${appname}:${apptag} to app1/k8s-${params.TARGET_SUBFOLDER} [Build #${env.BUILD_NUMBER}]"
                             git push https://${GIT_USER}:${GIT_TOKEN}@${targetRepoHost}/${targetRepoPath} HEAD:${params.GIT_BRANCH}
                         fi
                     """
