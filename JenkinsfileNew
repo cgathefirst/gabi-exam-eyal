@@ -4,7 +4,7 @@ properties([
             name: 'TARGET_SUBFOLDER', 
             choices: ['dev', 'qa', 'prod'], 
             description: 'Select the target environment folder'
-        )
+        ),
         string(
             name: 'GIT_BRANCH',
             defaultValue: 'second',
