@@ -1,19 +1,20 @@
 properties([
     parameters([
-        // 1. Fixed Choice Parameter using explicit map notation
+        // 1. The Parent Parameter: User selects the branch first
         [
             $class: 'ChoiceParameterDefinition',
             name: 'TARGET_BRANCH', 
-            choices: "main\nsecond\ntest", 
-            description: 'Select the remote Git branch you want to push the helmtemplate.yaml to.'
+            choices: "main\nsecond\ntest/auto-build", 
+            description: 'Select the remote Git branch.'
         ],
         
-        // 2. Active Choices Parameter configuration
+        // 2. The Reactive Child Parameter: Listens to TARGET_BRANCH changes
         [
-            $class: 'ChoiceParameter',
+            $class: 'CascadeChoiceParameter', // Crucial change: Enables reactivity
             choiceType: 'PT_SINGLE_SELECT',
-            description: 'Select the target folder within the repository to place the template.',
+            description: 'Dynamically reads folders from the selected branch above.',
             name: 'TARGET_FOLDER',
+            referencedParameters: 'TARGET_BRANCH', // Binds this dropdown to TARGET_BRANCH updates
             script: [
                 $class: 'GroovyScript',
                 fallbackScript: [
@@ -25,8 +26,13 @@ properties([
                     classpath: [],
                     sandbox: true,
                     script: """
+                        // TARGET_BRANCH is now automatically accessible inside this string context
+                        def selectedBranch = "\${TARGET_BRANCH}"
                         def repoUrl = "https://github.com/cgathefirst/gitops-argo.git" 
-                        def proc = ['sh', '-c', "git ls-remote --exit-code \${repoUrl} &>/dev/null && git ls-tree -r --name-only HEAD:${params.TARGET_BRANCH} | grep '/' | awk -F/ '{print \$1}' | sort -u || echo 'root_only'"].execute()
+                        
+                        // Dynamically targets the explicit branch selected by the user
+                        def gitCmd = "git ls-remote --exit-code \${repoUrl} &>/dev/null && git ls-tree -r --name-only \${selectedBranch} | grep '/' | awk -F/ '{print \$1}' | sort -u || echo 'root_only'"
+                        def proc = ['sh', '-c', gitCmd].execute()
                         proc.waitFor()
                         
                         def folders = proc.in.text.readLines()
