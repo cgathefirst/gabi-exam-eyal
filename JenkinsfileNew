@@ -91,7 +91,7 @@ stage('Push Manifest to Git') {
                     def targetDir = "gitops-target-repo"
 
                     sh """
-                        git clone https://${GIT_USER}:${GIT_TOKEN}@${targetRepoHost}/${targetRepoPath} ${targetDir}
+                        git clone https://cgathefirst:${GIT_TOKEN}@${targetRepoHost}/${targetRepoPath} ${targetDir}
                         cd ${targetDir}
                         git checkout ${params.GIT_BRANCH} || git checkout -b ${params.GIT_BRANCH}
                         mkdir -p k8s-${params.TARGET_SUBFOLDER}
