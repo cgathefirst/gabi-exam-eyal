@@ -4,7 +4,7 @@ properties([
         [
             $class: 'ChoiceParameterDefinition',
             name: 'TARGET_BRANCH', 
-            choices: "main\ndevelop\nstaging\nfeature/auto-build", 
+            choices: "main\nsecond\ntest/auto-build", 
             description: 'Select the remote Git branch you want to push the helmtemplate.yaml to.'
         ],
         
@@ -18,14 +18,14 @@ properties([
                 $class: 'GroovyScript',
                 fallbackScript: [
                     classpath: [],
-                    sandbox: true,
+                    sandbox: false,
                     script: "return ['error-loading-folders']"
                 ],
                 script: [
                     classpath: [],
-                    sandbox: true,
+                    sandbox: false,
                     script: """
-                        def repoUrl = "https://github.com" 
+                        def repoUrl = "https://github.com/cgathefirst/gitops-argo.git" 
                         def proc = ['sh', '-c', "git ls-remote --exit-code \${repoUrl} &>/dev/null && git ls-tree -r --name-only HEAD | grep '/' | awk -F/ '{print \$1}' | sort -u || echo 'root_only'"].execute()
                         proc.waitFor()
                         
