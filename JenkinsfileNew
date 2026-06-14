@@ -62,7 +62,8 @@ volumes: [
 
         stage('Helm Template Validation') {
             container('helm') {
-                sh "helm template ${appname}-${apptag} ./helmcharts"
+                sh "helm template ${appname}-${apptag} ./helmcharts > pipeapp.yaml && cat pipeapp.yaml"
+                sh "ls -la"
             }
         }
     }
