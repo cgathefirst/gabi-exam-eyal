@@ -82,19 +82,30 @@ volumes: [
                 sh "ls -la"
             }
         }
-        stage('Push Manifest to Git') {
+stage('Push Manifest to Git') {
             container('jnlp') {
-                sh "mkdir -p k8s-${params.TARGET_SUBFOLDER}"
-                sh "mv pipeapp.yaml k8s-${params.TARGET_SUBFOLDER}/pipeapp.yaml"
                 withCredentials([usernamePassword(credentialsId: 'github-token-push', usernameVariable: 'GIT_USER', passwordVariable: 'GIT_TOKEN')]) {
-                    def rawRepoUrl = sh(script: 'git config --get remote.origin.url', returnStdout: true).trim()
-                    def repoUrl = rawRepoUrl.replace("https://", "").replace("http://", "")
+                    // Define target repository details explicitly (Update github.com/your-org if needed)
+                    def targetRepoHost = "github.com"
+                    def targetRepoPath = "cgabya12/gitops-argo.git" 
+                    def targetDir = "gitops-target-repo"
+
                     sh """
+                        git clone https://${GIT_USER}:${GIT_TOKEN}@${targetRepoHost}/${targetRepoPath} ${targetDir}
+                        cd ${targetDir}
+                        git checkout ${params.GIT_BRANCH} || git checkout -b ${params.GIT_BRANCH}
+                        mkdir -p k8s-${params.TARGET_SUBFOLDER}
+                        cp ../pipeapp.yaml k8s-${params.TARGET_SUBFOLDER}/pipeapp.yaml
                         git config user.name "Jenkins CI Agent"
                         git config user.email "jenkins-ci@gabi.com"
                         git add k8s-${params.TARGET_SUBFOLDER}/pipeapp.yaml
-                        git commit -m "Deploying ${appname}:${apptag} to k8s-${params.TARGET_SUBFOLDER} [Build #${env.BUILD_NUMBER}]" || echo "No changes detected to commit"
-                        git push https://github.com/cgathefirst/gitops-argo.git HEAD:${params.GIT_BRANCH}
+                        
+                        if git diff-index --quiet HEAD --; then
+                            echo "No changes detected to commit"
+                        else
+                            git commit -m "Deploying ${appname}:${apptag} to k8s-${params.TARGET_SUBFOLDER} [Build #${env.BUILD_NUMBER}]"
+                            git push https://${GIT_USER}:${GIT_TOKEN}@${targetRepoHost}/${targetRepoPath} HEAD:${params.GIT_BRANCH}
+                        fi
                     """
                 }
             }
