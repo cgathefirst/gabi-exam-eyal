@@ -1,50 +1,3 @@
-properties([
-    parameters([
-        // 1. The Parent Parameter: User selects the branch first
-        [
-            $class: 'ChoiceParameterDefinition',
-            name: 'TARGET_BRANCH', 
-            choices: "main\nsecond\ntest/auto-build", 
-            description: 'Select the remote Git branch.'
-        ],
-        
-        // 2. The Reactive Child Parameter: Listens to TARGET_BRANCH changes
-        [
-            $class: 'CascadeChoiceParameter', // Crucial change: Enables reactivity
-            choiceType: 'PT_SINGLE_SELECT',
-            description: 'Dynamically reads folders from the selected branch above.',
-            name: 'TARGET_FOLDER',
-            referencedParameters: 'TARGET_BRANCH', // Binds this dropdown to TARGET_BRANCH updates
-            script: [
-                $class: 'GroovyScript',
-                fallbackScript: [
-                    classpath: [],
-                    sandbox: true,
-                    script: "return ['error-loading-folders']"
-                ],
-                script: [
-                    classpath: [],
-                    sandbox: true,
-                    script: """
-                        // TARGET_BRANCH is now automatically accessible inside this string context
-                        def selectedBranch = "\${TARGET_BRANCH}"
-                        def repoUrl = "https://github.com/cgathefirst/gitops-argo.git" 
-                        
-                        // Dynamically targets the explicit branch selected by the user
-                        def gitCmd = "git ls-remote --exit-code \${repoUrl} &>/dev/null && git ls-tree -r --name-only \${selectedBranch} | grep '/' | awk -F/ '{print \$1}' | sort -u || echo 'root_only'"
-                        def proc = ['sh', '-c', gitCmd].execute()
-                        proc.waitFor()
-                        
-                        def folders = proc.in.text.readLines()
-                        folders.add(0, ".") 
-                        return folders
-                    """
-                ]
-            ]
-        ]
-    ])
-])
-
 def appname = "examgabieyal"
 def repo = "cgabya12"  // Your DockerHub username
 def apptag = "${env.BUILD_NUMBER}"
@@ -81,10 +34,11 @@ volumes: [
         } 
         
         stage('Security and Linting') {
+            // Scripted pipeline parallel syntax uses named closures in a map:
             parallel(
                 'Linting': {
                     container('docker') {
-                        echo " now using Flake8 for "
+                        echo " now using Flake8 "
                     }
                 },
                 'Security': {
@@ -94,7 +48,7 @@ volumes: [
                 }
             )
         }
-
+        
         stage('Docker Build & Push') {
             container('docker') {
                 sh "docker build -t ${appimage} ."
@@ -108,33 +62,8 @@ volumes: [
 
         stage('Helm Template Validation') {
             container('helm') {
-                sh "helm template ${appname}-${apptag} ./helmcharts > helmtemplate.yaml"
+                sh "helm template ${appname}-${apptag} ./helmcharts"
             }
         }
-        
-        // stage('Push to Git') {
-        //     container('jnlp') { 
-        //         withCredentials([gitUsernamePassword(credentialsId: 'github-token-push', gitToolName: 'Default')]) {
-        //             sh """
-        //                 git config user.email "jenkins-bot@githubexamples.com"
-        //                 git config user.name "Jenkins Build Bot"
-                        
-        //                 # Check if the user selected a subfolder or root directory
-        //                 if [ "${params.TARGET_FOLDER}" != "." ]; then
-        //                     mkdir -p ${params.TARGET_FOLDER}
-        //                     mv helmtemplate.yaml ${params.TARGET_FOLDER}/
-        //                     git add ${params.TARGET_FOLDER}/helmtemplate.yaml
-        //                 else
-        //                     git add helmtemplate.yaml
-        //                 fi
-                        
-        //                 git commit -m "chore: update yaml file in folder ${params.TARGET_FOLDER} [skip ci]" || echo "No changes to commit"
-                        
-        //                 # Dynamically pushing to the user-selected branch
-        //                 git push origin HEAD:${params.TARGET_BRANCH}
-        //             """
-        //         }
-        //     }
-        // }
     }
 }
