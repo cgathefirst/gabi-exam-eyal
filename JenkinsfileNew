@@ -1,3 +1,46 @@
+properties([
+    parameters([
+        // 1. Existing Target Branch Parameter
+        choice(
+            name: 'TARGET_BRANCH', 
+            choices: ['main', 'dev'], 
+            description: 'Select the remote Git branch you want to push the values.yaml to.'
+        ),
+        
+        // 2. New Active Choices Parameter to dynamically list folders
+        $class: 'ChoiceParameter',
+        choiceType: 'PT_SINGLE_SELECT', // Renders as a single-select dropdown
+        description: 'Select the target folder within the repository to place the template.',
+        name: 'TARGET_FOLDER',
+        script: [
+            $class: 'GroovyScript',
+            fallbackScript: [
+                classpath: [],
+                sandbox: false,
+                script: "return ['error-loading-folders']"
+            ],
+            script: [
+                classpath: [],
+                sandbox: false,
+                script: """
+                    // Uses git commands directly against your remote repo URL to list directories without checking out everything
+                    def repoUrl = "https://github.com/cgathefirst/gitops-argo.git" 
+                    
+                    // Executes a native OS process to fetch the tree structure of the repository
+                    def command = "git ls-tree -d --name-only HEAD"
+                    def proc = ['sh', '-c', "git ls-remote --exit-code \${repoUrl} &>/dev/null && git ls-tree -r --name-only HEAD | grep '/' | awk -F/ '{print \$1}' | sort -u || echo 'root_only'"].execute()
+                    proc.waitFor()
+                    
+                    def folders = proc.in.text.readLines()
+                    // Prepend root dot notation if they want to save directly to the root workspace
+                    folders.add(0, ".") 
+                    return folders
+                """
+            ]
+        ]
+    ])
+])
+
 def appname = "examgabieyal"
 def repo = "cgabya12"  // Your DockerHub username
 def apptag = "${env.BUILD_NUMBER}"
@@ -37,7 +80,7 @@ volumes: [
             parallel(
                 'Linting': {
                     container('docker') {
-                        echo " now using Flake8 "
+                        echo " now using Flake8 for "
                     }
                 },
                 'Security': {
@@ -47,7 +90,7 @@ volumes: [
                 }
             )
         }
-        
+
         stage('Docker Build & Push') {
             container('docker') {
                 sh "docker build -t ${appimage} ."
@@ -61,8 +104,33 @@ volumes: [
 
         stage('Helm Template Validation') {
             container('helm') {
-                sh "helm template ${appname}-${apptag} ./helmcharts"
+                sh "helm template ${appname}-${apptag} ./helmcharts > helmtemplate.yaml"
             }
         }
+        
+        // stage('Push to Git') {
+        //     container('jnlp') { 
+        //         withCredentials([gitUsernamePassword(credentialsId: 'github-token-push', gitToolName: 'Default')]) {
+        //             sh """
+        //                 git config user.email "jenkins-bot@githubexamples.com"
+        //                 git config user.name "Jenkins Build Bot"
+                        
+        //                 # Check if the user selected a subfolder or root directory
+        //                 if [ "${params.TARGET_FOLDER}" != "." ]; then
+        //                     mkdir -p ${params.TARGET_FOLDER}
+        //                     mv helmtemplate.yaml ${params.TARGET_FOLDER}/
+        //                     git add ${params.TARGET_FOLDER}/helmtemplate.yaml
+        //                 else
+        //                     git add helmtemplate.yaml
+        //                 fi
+                        
+        //                 git commit -m "chore: update yaml file in folder ${params.TARGET_FOLDER} [skip ci]" || echo "No changes to commit"
+                        
+        //                 # Dynamically pushing to the user-selected branch
+        //                 git push origin HEAD:${params.TARGET_BRANCH}
+        //             """
+        //         }
+        //     }
+        // }
     }
 }
