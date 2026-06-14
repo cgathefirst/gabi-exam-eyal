@@ -87,7 +87,7 @@ stage('Push Manifest to Git') {
                 withCredentials([usernamePassword(credentialsId: 'github-token-push', usernameVariable: 'GIT_USER', passwordVariable: 'GIT_TOKEN')]) {
                     // Define target repository details explicitly (Update github.com/your-org if needed)
                     def targetRepoHost = "github.com"
-                    def targetRepoPath = "cgabya12/gitops-argo.git" 
+                    def targetRepoPath = "cgathefirst/gitops-argo.git" 
                     def targetDir = "gitops-target-repo"
 
                     sh """
