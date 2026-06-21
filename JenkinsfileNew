@@ -1,7 +1,25 @@
+properties([
+    parameters([
+        choice(
+            name: 'TARGET_SUBFOLDER', 
+            choices: ['dev', 'qa', 'prod'], 
+            description: 'Select the target environment folder'
+        ),
+        string(
+            name: 'GIT_BRANCH',
+            defaultValue: 'second',
+            description: 'The target branch to push back to'
+        )
+    ])
+])
+
+
 def appname = "examgabieyal"
-def repo = "cgabya12"  // Replace with your DockerHub username
-def apptag = "${env.BUILD_NUMBER}"
+def repo = "cgabya12"  
+def apptag = "${params.TARGET_SUBFOLDER}"
 def appimage = "docker.io/${repo}/${appname}:${apptag}"
+
+
 
 podTemplate(cloud: 'kubernetes', containers: [
     containerTemplate(
@@ -12,52 +30,84 @@ podTemplate(cloud: 'kubernetes', containers: [
         name: 'docker', 
         image: 'docker:26-dind', 
         privileged: true,      
-        args: '--storage-driver=vfs',
-        
-    )], 
-  volumes: [
+        args: '--storage-driver=overlay2' 
+    ),
+    containerTemplate(
+        name: 'helm',
+        image: 'alpine/helm:3.14.0',
+        command: 'sleep',
+        args: '99d'
+    )
+], 
+volumes: [
     emptyDirVolume(mountPath: '/var/lib/docker', memory: false) 
-  ]) {
+]) {
     
     node(POD_LABEL) {
-        stage('checkout') { 
+        stage('Checkout') { 
             container('jnlp') {
                 sh '/usr/bin/git config --global http.sslVerify false'
                 checkout scm
             }
         } 
-
-        stage('docker Build') {
-            container('docker') {
-                sh "sleep 10 && docker build -t ${appimage} ."
-            }
-        } 
-        stage('helm install') {
-            container('docker') { 
-                sh '''                
-                apk add --no-cache curl
-                apk add --no-cache bash
-                '''
-                sh '''
-                curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-4
-                chmod 700 get_helm.sh
-                ./get_helm.sh
-                '''
-                }
-            }
         
-        stage('login & push') {
+        stage('Security and Linting') {
+            parallel(
+                'Linting': {
+                    container('docker') {
+                        echo " now using Flake8 "
+                    }
+                },
+                'Security': {
+                    container('docker') {
+                        echo "Now using Trivy for Docker"
+                    }
+                }
+            )
+        }
+        
+        stage('Docker Build & Push') {
             container('docker') {
+                sh "docker build -t ${appimage} ."
                 withCredentials([usernamePassword(credentialsId: 'jenkins-dockcred', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_TOKEN')]) {
                     sh "echo \$DOCKER_TOKEN | docker login -u \$DOCKER_USER --password-stdin"
                     sh "docker push ${appimage}"            
                 }
             }
         }
-        
-        stage('helm template') {
-            container('docker') {
-                sh "helm template ${appname}-${apptag} ./helmcharts"
+
+        stage('Helm Template Validation') {
+            container('helm') {
+                sh "helm template ${appname}-${apptag} ./helmcharts --set image.tag=${apptag} > pipeapp.yaml && cat pipeapp.yaml"
+                sh "ls -la"
+            }
+        }
+stage('Push Manifest to Git') {
+            container('jnlp') {
+                withCredentials([usernamePassword(credentialsId: 'github-token-push', usernameVariable: 'GIT_USER', passwordVariable: 'GIT_TOKEN')]) {
+                    // Define target repository details explicitly (Update github.com/your-org if needed)
+                    def targetRepoHost = "github.com"
+                    def targetRepoPath = "cgathefirst/gitops-argo.git" 
+                    def targetDir = "gitops-target-repo"
+
+                    sh """
+                        git clone https://${GIT_USER}:${GIT_TOKEN}@${targetRepoHost}/${targetRepoPath} ${targetDir}
+                        cd ${targetDir}
+                        git checkout ${params.GIT_BRANCH} || git checkout -b ${params.GIT_BRANCH}
+                        mkdir -p app1/k8s-${params.TARGET_SUBFOLDER}
+                        cp ../pipeapp.yaml app1/k8s-${params.TARGET_SUBFOLDER}/pipeapp.yaml
+                        git config user.name "Jenkins CI Agent"
+                        git config user.email "jenkins-ci@gabi.com"
+                        git add app1/k8s-${params.TARGET_SUBFOLDER}/pipeapp.yaml
+                        
+                        if git diff-index --quiet HEAD --; then
+                            echo "No changes detected to commit"
+                        else
+                            git commit -m "Deploying ${appname}:${apptag} to app1/k8s-${params.TARGET_SUBFOLDER} [Build #${env.BUILD_NUMBER}]"
+                            git push https://${GIT_USER}:${GIT_TOKEN}@${targetRepoHost}/${targetRepoPath} HEAD:${params.GIT_BRANCH}
+                        fi
+                    """
+                }
             }
         }
     }
