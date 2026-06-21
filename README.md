@@ -58,8 +58,8 @@ When triggering this pipeline manually in Jenkins ("Build with Parameters"), def
 
 1. **Checkout:** Clones the application source code using the standard JNLP agent.
 2. **Security and Linting:** Runs two parallel jobs:
-   * **Linting:** Validates Python style guides via Flake8.(MOCK STAGE)
-   * **Security:** Runs Trivy container image and configuration scanning.(MOCK STAGE)
+   * **Linting:** Validates Python style guides via Flake8. **(MOCK STAGE)**
+   * **Security:** Runs Trivy container image and configuration scanning. **(MOCK STAGE)**
 3. **Docker Build & Push:** Spins up a Docker-in-Docker (`dind`) sidecar, builds the application container image, authenticates securely against Docker Hub, and pushes the tagged image.
 4. **Helm Template Validation:** Uses Helm v3 to render chart values locally, testing the generated template and writing it to a `pipeapp.yaml` file.
 5. **Push Manifest to Git:** Clones the remote `cgathefirst/gitops-argo` repository, inserts/updates the output manifest into the environment-specific directory (`app1/k8s-{env}`), and commits/pushes changes conditionally if a diff is caught.
@@ -79,7 +79,7 @@ Configure the following credentials within your Jenkins credentials store:
 
 When pushing updates back to the GitOps repo, the pipeline dynamically targets the following directory hierarchy based on parameter variables:
 
-```text
+```
 gitops-target-repo/ (branch: $GIT_BRANCH)
 └── app1/
     ├── k8s-dev/
